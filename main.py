@@ -41,7 +41,7 @@ FAKE_SUJETS_DB: List[Dict[str, Any]] = [
 
 # --- APPLICATION ---
 app = FastAPI
-    title="HorizonSésamedesTechno",
+    title="Horizon_Sésame_des_Techno",
     version="1.0.0",
     description="API de centralisation des anciens sujets d'examens et corrections universitaires"
 from pathlib import Path
