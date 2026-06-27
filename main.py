@@ -40,7 +40,7 @@ FAKE_SUJETS_DB: List[Dict[str, Any]] = [
 ]
 
 # --- APPLICATION ---
-app = FastAPI(
+app = FastAPI
     title="Horizon - Sésame des Techno",
     version="1.0.0",
     description="API de centralisation des anciens sujets d'examens et corrections universitaires"
