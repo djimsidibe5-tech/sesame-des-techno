@@ -2,6 +2,7 @@ from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi import File, Form  # Importation corrigée et sécurisée
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 import shutil
 import os
 
