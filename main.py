@@ -41,7 +41,7 @@ FAKE_SUJETS_DB: List[Dict[str, Any]] = [
 # --- APPLICATION ---
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-from pathlib import path
+from pathlib import Path
 app = FastAPI()
 
 
