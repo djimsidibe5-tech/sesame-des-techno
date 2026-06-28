@@ -1,187 +1,84 @@
-from typing import List, Optional, Any, Dict
-from fastapi import FastAPI, Query, HTTPException, status
-from pydantic import BaseModel, Field
-
-# --- MODÈLES DE DONNÉES ---
-class SujetBase(BaseModel):
-    matiere: str
-    annee: int
-    semestre: int
-    type_session: str
-    url_sujet: str
-    url_correction: Optional[str] = None
-
-class SujetCreate(SujetBase):
-    pass
-
-class Sujet(SujetBase):
-    id: int
-
-# --- BASE DE DONNÉES TEMPORAIRE ---
-FAKE_SUJETS_DB: List[Dict[str, Any]] = [
-    {
-        "id": 1,
-        "matiere": "Thermodynamique",
-        "annee": 2025,
-        "semestre": 1,
-        "type_session": "Principale",
-        "url_sujet": "https://horizon-storage.ci/sujets/thermo_2025.pdf",
-        "url_correction": "https://horizon-storage.ci/corrections/cor_thermo_2025.pdf" },
-    {
-        "id": 2,
-        "matiere": "Algèbre Linéaire",
-        "annee": 2024,
-        "semestre": 1,
-        "type_session": "Rattrapage",
-        "url_sujet": "https://horizon-storage.ci/sujets/algebre_2024.pdf",
-        "url_correction": None
-    }
-]
-
-# --- APPLICATION ---
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-app = FastAPI()
+import shutil
 
+app = FastAPI(
+    title="Horizon - Sésame des Techno",
+    version="1.1.0",
+    description="API de centralisation des anciens sujets d'examens et corrections"
+)
+
+# Configuration du dossier de stockage
+dossier_fichiers = Path("fichiers")
+dossier_fichiers.mkdir(exist_ok=True)
+
+# Montage des fichiers statiques
+app.mount("/fichiers", StaticFiles(directory="fichiers"), name="fichiers")
+
+def generer_html_liste():
+    sujets = [f.name for f in dossier_fichiers.iterdir() if f.is_file()]
+    if not sujets:
+        return '<p style="color: #bbb; font-style: italic;">Aucun sujet disponible pour le moment.</p>'
+    
+    html = '<ul style="list-style: none; padding: 0; text-align: left; max-width: 500px; margin: 0 auto;">'
+    for sujet in sujets:
+        html += f"""
+        <li style="background: rgba(255,255,255,0.05); margin: 8px 0; padding: 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <span>📄 {sujet}</span>
+            <a href="/fichiers/{sujet}" style="background: #2563eb; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 14px; transition: 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Télécharger</a>
+        </li>"""
+    html += "</ul>"
+    return html
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    return """
-<!DOCTYPE html>
+    liste_html = generer_html_liste()
+    return f"""<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sésame des Techno - Horizon</title>
-
     <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            text-align: center;
-        }
-
-        .container {
-            max-width: 800px;
-            padding: 20px;
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-            background: linear-gradient(to right, #38bdf8, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        p {
-            font-size: 1.2rem;
-            color: #94a3b8;
-            margin-bottom: 30px;
-        }
-
-        .btn {
-            display: inline-block;
-            background: #2563eb;
-            color: white;
-            text-decoration: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-weight: bold;
-            transition: background 0.3s;
-            font-size: 1.1rem;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
-        }
-
-        .btn:hover {
-            background: #1d4ed8;
-        }
-
-        .preview-img {
-            margin-top: 40px;
-            max-width: 90%;
-            border-radius: 12px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
+        body {{ margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: white; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; box-sizing: border-box; }}
+        .container {{ max-width: 800px; width: 100%; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; }}
+        h1 {{ color: #38bdf8; margin-bottom: 10px; }}
+        .subtitle {{ color: #94a3b8; margin-bottom: 30px; }}
+        .section {{ background: #0f172a; padding: 20px; border-radius: 8px; margin-bottom: 25px; }}
+        h2 {{ font-size: 18px; color: #38bdf8; margin: 0 0 15px 0; text-align: left; border-bottom: 1px solid #334155; padding-bottom: 8px; }}
+        input[type="file"] {{ background: #1e293b; padding: 8px; border-radius: 6px; border: 1px dashed #475569; color: #cbd5e1; cursor: pointer; }}
+        button {{ background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }}
+        button:hover {{ background: #059669; }}
     </style>
 </head>
-
 <body>
     <div class="container">
-        <h1>Sésame des Techno</h1>
-
-        <p>
-            Votre plateforme de centralisation des anciens sujets
-            d'examens et corrections.
-        </p>
-
-        <a href="/docs" class="btn">
-            Accéder aux Sujets & API
-        </a>
-
-        <br><br>
-
-        <img
-            src="http://googleusercontent.com/generated_image_content/0"
-            alt="Horizon Interface"
-            class="preview-img"
-        >
+        <h1>Sésame des Techno 🎓</h1>
+        <p class="subtitle">Espace collaboratif de centralisation des anciens sujets et corrections</p>
+        <div class="section">
+            <h2>Ajouter un nouveau sujet</h2>
+            <form action="/upload-sujet" method="post" enctype="multipart/form-data">
+                <input type="file" name="file" required>
+                <button type="submit">Téléverser sur le site</button>
+            </form>
+        </div>
+        <div class="section">
+            <h2>Sujets et Corrections disponibles</h2>
+            {liste_html}
+        </div>
     </div>
 </body>
-</html>
-"""
-# --- CONFIGURATION DES FICHIERS STATIQUES ---
+</html>"""
 
-# Définition du répertoire cible
-dossier_fichiers = Path("fichiers")
-
-# Création du dossier s'il n'existe pas (exist_ok=True évite l'erreur si le dossier existe déjà)
-dossier_fichiers.mkdir(parents=True, exist_ok=True)
-
-# Montage du dossier pour rendre les fichiers accessibles via l'URL /telecharger
-
-# --- ROUTES ---
-
-@app.get("/sujets", tags=["Sujets & Corrections"], summary="Récupérer les sujets disponibles")
-def list_sujets(
-    matiere: Optional[str] = Query(None, description="Filtrer par nom de matière"),
-    annee: Optional[int] = Query(None, description="Filtrer par année universitaire")
-):
-    resultats = FAKE_SUJETS_DB
+@app.post("/upload-sujet")
+async def uploader_sujet(file: UploadFile = File(...)):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Nom de fichier invalide")
     
-    if matiere:
-        resultats = [s for s in resultats if matiere.lower() in s["matiere"].lower()]
-    if annee:
-        resultats = [s for s in resultats if s["annee"] == annee]
-        
-    return resultats
-
-@app.post("/sujets", tags=["Sujets & Corrections"], status_code=status.HTTP_201_CREATED, summary="Ajouter un nouveau sujet")
-def create_sujet(sujet: SujetCreate):
-    new_id = max((s["id"] for s in FAKE_SUJETS_DB), default=0) + 1
-    new_sujet = sujet.model_dump()
-    new_sujet["id"] = new_id
+    file_path = dossier_fichiers / file.filename
+    with file_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
     
-    FAKE_SUJETS_DB.append(new_sujet)
-    return new_sujet
-
-@app.put("/sujets/{sujet_id}/correction", tags=["Sujets & Corrections"], summary="Ajouter/Mettre à jour la correction")
-def update_correction(sujet_id: int, url_correction: str = Query(..., description="URL du fichier de correction")):
-    for sujet in FAKE_SUJETS_DB:
-        if sujet["id"] == sujet_id:
-            sujet["url_correction"] = url_correction
-            return {"message": "Correction mise à jour avec succès", "sujet": sujet}
-            
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, 
-        detail="Sujet introuvable"
-    )
+    return RedirectResponse(url="/", status_code=303)
