@@ -41,7 +41,6 @@ FAKE_SUJETS_DB: List[Dict[str, Any]] = [
 # --- APPLICATION ---
 from fastapi import FastAPI,HTMLResponse
 from pathlib import Path
-from fastapi.staticfiles import StaticFiles
 app = FastAPI(
     title="Horizon - Sésame des Techno",
     version="1.0.0",
