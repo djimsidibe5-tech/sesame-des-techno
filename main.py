@@ -48,8 +48,7 @@ app = FastAPI(
     description="API de centralisation des anciens sujets d'examens et corrections")
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    return r"""
-<!DOCTYPE html>
+    return r"""<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
