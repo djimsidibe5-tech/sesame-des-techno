@@ -46,9 +46,6 @@ app = FastAPI(
     title="Horizon - Sésame des Techno",
     version="1.0.0",
     description="API de centralisation des anciens sujets d'examens et corrections")
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
-app = FastAPI()
 @app.get("/", response_class=HTMLResponse)
 async def home():
     return r"""
@@ -125,6 +122,7 @@ async def home():
     </div>
 </body>
 </html>
+"""
 # --- CONFIGURATION DES FICHIERS STATIQUES ---
 
 # Définition du répertoire cible
