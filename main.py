@@ -3,18 +3,14 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import shutil
+import os
 
-app = FastAPI(
-    title="Horizon - Sésame des Techno",
-    version="1.5.0",
-    description="Plateforme complète de centralisation Sciences & Technologies"
-)
+app = FastAPI(title="Sésame des Techno")
 
-# Configuration du dossier principal de stockage
+# Initialisation propre du dossier de stockage sur le disque Render
 dossier_fichiers = Path("fichiers")
 dossier_fichiers.mkdir(exist_ok=True)
 
-# Liste complète de toutes les matières
 categories = [
     "Algèbre Linéaire",
     "Analyse & Calcul Numérique",
@@ -30,152 +26,94 @@ categories = [
     "Sujets de Concours"
 ]
 
-# Création automatique des dossiers pour chaque matière
+# Création des sous-dossiers au démarrage
 for cat in categories:
     (dossier_fichiers / cat).mkdir(exist_ok=True)
 
-# Montage du dossier pour rendre les fichiers téléchargeables
+# Montage sécurisé des fichiers statiques
 app.mount("/fichiers", StaticFiles(directory="fichiers"), name="fichiers")
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    # Construction dynamique des blocs de matières sans f-string globale (évite les conflits CSS/Python)
+    options_select = ""
     blocs_matieres_html = ""
-   
+
+    # Génération ultra-légère des composants HTML
     for cat in categories:
-        chemin_cat = dossier_fichiers / cat
-        fichiers_cat = [f.name for f in chemin_cat.iterdir() if f.is_file()]
+        options_select += f'<option value="{cat}">{cat}</option>'
        
+        chemin_cat = dossier_fichiers / cat
+        # Utilisation de os.scandir (très économe en RAM) au lieu de iterdir()
+        fichiers = []
+        if chemin_cat.exists():
+            with os.scandir(chemin_cat) as entries:
+                for entry in entries:
+                    if entry.is_file() and not entry.name.startswith('.'):
+                        fichiers.append(entry.name)
+
         liste_fichiers_html = ""
-        if not fichiers_cat:
+        if not fichiers:
             liste_fichiers_html = "<p class='no-file'>Aucun sujet disponible.</p>"
         else:
             liste_fichiers_html = "<ul class='file-list'>"
-            for sujet in fichiers_cat:
+            for sujet in fichiers:
                 liste_fichiers_html += f"""
                 <li class='file-item'>
-                    <span class='file-name' title='{sujet}'>📄 {sujet}</span>
-                    <a href='/fichiers/{cat}/{sujet}' download class='btn-download'>Ouvrir</a>
-                </li>
-                """
+                    <span class='file-name'>📄 {sujet}</span>
+                    <a href='/fichiers/{cat}/{sujet}' download class='btn-download'>Télécharger</a>
+                </li>"""
             liste_fichiers_html += "</ul>"
-           
-        # Style spécial pour les concours
+
         classe_carte = "card-cat special" if cat == "Sujets de Concours" else "card-cat"
-       
         blocs_matieres_html += f"""
         <div class='{classe_carte}'>
             <h3>{cat}</h3>
             {liste_fichiers_html}
-        </div>
-        """
+        </div>"""
 
-    # Génération des options du formulaire
-    options_select = "".join([f'<option value="{cat}">{cat}</option>' for cat in categories])
-        # Code HTML pur (sans f-string globale = aucun conflit avec les accolades du CSS)
     html_content = """<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sésame des Techno - Horizon</title>
+    <title>Sésame des Techno</title>
     <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 10px auto;
-            width: 100%;
-            background: #1e293b;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            box-sizing: border-box;
-        }
-        .header { text-align: center; margin-bottom: 25px; }
-        h1 { color: #38bdf8; margin: 0 0 5px 0; font-size: 32px; font-weight: 800; }
-        .subtitle { color: #94a3b8; margin: 0; font-size: 14px; }
-       
-        .upload-section {
-            background: #1e3a8a;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            border: 1px solid #2563eb;
-        }
-        .upload-section h2 { font-size: 15px; margin-top: 0; color: #60a5fa; margin-bottom: 12px; font-weight: 600; }
-        .upload-form {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: center;
-        }
-        select, input[type="file"] {
-            background: #0f172a;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #475569;
-            color: #cbd5e1;
-            font-size: 14px;
-            flex: 1;
-            min-width: 220px;
-            box-sizing: border-box;
-        }
-        .btn-submit {
-            background: #10b981; color: white; border: none; padding: 11px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 14px;
-        }
-        .btn-submit:hover { background: #059669; }
-       
-        .grid-categories {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-        }
-        .card-cat {
-            background: #0f172a;
-            padding: 18px;
-            border-radius: 8px;
-            border-top: 3px solid #38bdf8;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+        body { margin: 0; font-family: sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; }
+        h1 { color: #38bdf8; text-align: center; }
+        .upload-section { background: #1e3a8a; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        .upload-form { display: flex; gap: 12px; flex-wrap: wrap; }
+        select, input[type="file"] { background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #475569; color: white; }
+        .btn-submit { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .grid-categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card-cat { background: #0f172a; padding: 15px; border-radius: 8px; border-top: 3px solid #38bdf8; }
         .card-cat.special { border-top-color: #f59e0b; }
-        .card-cat h3 { font-size: 15px; color: #38bdf8; margin-top: 0; margin-bottom: 12px; border-bottom: 1px solid #1e293b; padding-bottom: 8px; font-weight: 600; }
-        .card-cat.special h3 { color: #f59e0b; }
+        .file-list { list-style: none; padding: 0; }
+        .file-item { background: rgba(255,255,255,0.05); margin: 5px 0; padding: 8px; border-radius: 4px; display: flex; justify-content: space-between; }
+        .btn-download { background: #2563eb; color: white; text-decoration: none; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Sésame des Techno 🎓</h1>
-            <p class="subtitle">Espace collaboratif global • Tous les anciens sujets et concours</p>
-        </div>
-       
+        <h1>Sésame des Techno 🎓</h1>
         <div class="upload-section">
-            <h2>➕ Ajouter un document ou un sujet d'examen</h2>
             <form action="/upload-sujet/" method="post" enctype="multipart/form-data" class="upload-form">
                 <select name="categorie" required>
-                    <option value="" disabled selected>Choisir la matière exacte...</option>
+                    <option value="" disabled selected>Choisir la matière...</option>
                     </select>
                 <input type="file" name="file" required>
                 <button type="submit" class="btn-submit">Mettre en ligne</button>
             </form>
         </div>
-
         <div class="grid-categories">
             </div>
     </div>
 </body>
-</html>
-"""
+</html>"""
 
-    # Remplacement sécurisé des repères par tes variables Python
     html_content = html_content.replace("", options_select)
     html_content = html_content.replace("", blocs_matieres_html)
-
     return HTMLResponse(content=html_content)
+
+@app.post("/upload-sujet/")
+async def uploader_sujet(categorie: str = Form(...), file: UploadFile = Fil
