@@ -131,12 +131,6 @@ dossier_fichiers = Path("fichiers")
 dossier_fichiers.mkdir(parents=True, exist_ok=True)
 
 # Montage du dossier pour rendre les fichiers accessibles via l'URL /telecharger
-app.mount(
-    "/telecharger", 
-    StaticFiles(directory=dossier_fichiers), 
-    name="telechargements"
-)
-
 
 # --- ROUTES ---
 
