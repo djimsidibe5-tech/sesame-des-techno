@@ -116,4 +116,17 @@ async def home():
     return HTMLResponse(content=html_content)
 
 @app.post("/upload-sujet/")
-async def uploader_sujet(categorie: str = Form(...), file: UploadFile = Fil
+async def uploader_sujet(categorie: str = Form(...), file: UploadFile = File(...)):
+    if categorie not in categories:
+        raise HTTPException(status_code=400, detail="Matière invalide")
+   
+    chemin_destination = dossier_fichiers / categorie / file.filename
+    with chemin_destination.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+       
+    return HTMLResponse(content="""
+    <script>
+        alert("Fichier mis en ligne avec succès !");
+        window.location.href = "/";
+    </script>
+    """)
