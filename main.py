@@ -63,7 +63,7 @@ async def home():
         body {
             margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f172a, #1e293b);
+            background-color: # 0f172a;
             color: white;
             display: flex;
             flex-direction: column;
@@ -71,7 +71,7 @@ async def home():
             justify-content: center;
             min-height: 100vh;
             text-align: center; }
-        .container {
+         container {
             max-width: 800px;
             padding: 20px;}
         h1 {
