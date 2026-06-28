@@ -51,7 +51,7 @@ from fastapi.responses import HTMLResponse
 app = FastAPI()
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    return 
+    return r"""
 <!DOCTYPE html>
 <html lang="fr">
 <head>
