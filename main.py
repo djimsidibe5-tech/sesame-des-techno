@@ -69,7 +69,7 @@ async def home():
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            min-height: 100 vh;
             text-align: center; }
          container {
             max-width: 800px;
